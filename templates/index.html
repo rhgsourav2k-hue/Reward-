@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rewardra Auto Referral</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; display: flex; justify-content: center; }
+        .container { background: #1e293b; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h2 { text-align: center; color: #38bdf8; }
+        label { display: block; margin-top: 15px; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; box-sizing: border-box; }
+        button { width: 100%; background: #0284c7; color: white; border: none; padding: 12px; margin-top: 20px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0369a1; }
+        #results { margin-top: 20px; background: #0f172a; padding: 10px; border-radius: 6px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .log-item { margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Rewardra Referral Bot</h2>
+        <label>Referral Code:</label>
+        <input type="text" id="refCode" value="DXWOZZLY">
+        
+        <label>Accounts Count (Max 3 per click):</label>
+        <select id="count">
+            <option value="1">1 Account</option>
+            <option value="2">2 Accounts</option>
+            <option value="3" selected>3 Accounts</option>
+        </select>
+
+        <button onclick="startSignup()" id="subBtn">Start Sending</button>
+
+        <div id="results" style="display:none;"></div>
+    </div>
+
+    <script>
+        async function startSignup() {
+            const ref = document.getElementById('refCode').value;
+            const count = document.getElementById('count').value;
+            const btn = document.getElementById('subBtn');
+            const resDiv = document.getElementById('results');
+
+            if(!ref) {
+                alert('Please enter referral code');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            resDiv.style.display = 'block';
+            resDiv.innerHTML = '<div class="log-item">Requesting server...</div>';
+
+            try {
+                let response = await fetch('/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ref: ref, count: parseInt(count) })
+                });
+                let data = await response.json();
+                
+                let html = `<div><b>Success: ${data.success_count} | Failed: ${data.failed_count}</b></div><hr>`;
+                data.logs.forEach(log => {
+                    html += `<div class="log-item">${log}</div>`;
+                });
+                resDiv.innerHTML = html;
+            } catch (err) {
+                resDiv.innerHTML = `<div style="color:red;">Error: Server timeout or failed</div>`;
+            }
+
+            btn.disabled = false;
+            btn.innerText = "Start Sending";
+        }
+    </script>
+</body>
+</html>

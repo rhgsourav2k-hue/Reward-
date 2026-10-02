@@ -222,7 +222,7 @@ async function start() {
     log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
 
     for (let i = 1; i <= count; i++) {
-        log(`\n[${i}/${count}] Processing...`, 'warn');
+        log(`[${i}/${count}] Processing...`, 'warn');
 
         try {
             const response = await fetch('/api/register', {
@@ -231,7 +231,28 @@ async function start() {
                 body: JSON.stringify({ ref_code: refCode })
             });
 
-            const result = await response.json();
+            const text = await response.text();
+            let result;
+            
+            try {
+                result = JSON.parse(text);
+            } catch (e) {
+                log('   ❌ Invalid response: ' + text.substring(0, 100), 'error');
+                failed++;
+                total++;
+                updateStats();
+                updateProgress(i, count);
+                continue;
+            }
+
+            if (result.error) {
+                log('   ❌ Server error: ' + result.error, 'error');
+                failed++;
+                total++;
+                updateStats();
+                updateProgress(i, count);
+                continue;
+            }
 
             log('📧 ' + result.email, 'info');
             log('📱 ' + result.device, 'dim');
@@ -242,7 +263,7 @@ async function start() {
 
             if (result.success) {
                 success++;
-                log('   🎉 ' + result.status, 'success');
+                log('   ✅ ' + result.status, 'success');
                 log('   🌐 IP: ' + result.user_ip, 'dim');
             } else {
                 failed++;
@@ -258,14 +279,13 @@ async function start() {
         updateStats();
         updateProgress(i, count);
 
-        // Delay between accounts
         if (i < count) {
             log('   ⏱  Waiting 10s...', 'dim');
             await new Promise(r => setTimeout(r, 10000));
         }
     }
 
-    log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
+    log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
     log('✅ Success: ' + success, 'success');
     log('❌ Failed: ' + failed, 'error');
     log('📊 Total: ' + total, 'info');

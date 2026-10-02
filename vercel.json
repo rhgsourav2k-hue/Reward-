@@ -1,10 +1,22 @@
 {
-  "functions": {
-    "api/*.py": {
-      "maxDuration": 60
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/register.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     }
-  },
-  "rewrites": [
-    { "source": "/api/register", "destination": "/api/register.py" }
+  ],
+  "routes": [
+    {
+      "src": "/api/register",
+      "dest": "/api/register.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
   ]
 }

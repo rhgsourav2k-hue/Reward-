@@ -3,41 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rewardra Auto Referral</title>
+    <title>Rewardra PRO Auto Referral</title>
     <style>
         body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; display: flex; justify-content: center; }
-        .container { background: #1e293b; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .container { background: #1e293b; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         h2 { text-align: center; color: #38bdf8; }
         label { display: block; margin-top: 15px; font-size: 14px; }
         input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; box-sizing: border-box; }
         button { width: 100%; background: #0284c7; color: white; border: none; padding: 12px; margin-top: 20px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
         button:hover { background: #0369a1; }
-        #results { margin-top: 20px; background: #0f172a; padding: 10px; border-radius: 6px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }
-        .log-item { margin-bottom: 5px; }
+        button:disabled { background: #475569; cursor: not-allowed; }
+        #results { margin-top: 20px; background: #0f172a; padding: 10px; border-radius: 6px; max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 11px; }
+        .log-item { margin-bottom: 6px; border-bottom: 1px solid #334155; padding-bottom: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Rewardra Referral Bot</h2>
+        <h2>Rewardra PRO Bot</h2>
         <label>Referral Code:</label>
         <input type="text" id="refCode" value="DXWOZZLY">
         
-        <label>Accounts Count (Max 3 per click):</label>
-        <select id="count">
-            <option value="1">1 Account</option>
-            <option value="2">2 Accounts</option>
-            <option value="3" selected>3 Accounts</option>
-        </select>
+        <label>Total Accounts to Create:</label>
+        <input type="number" id="totalCount" value="10" min="1" max="50">
 
-        <button onclick="startSignup()" id="subBtn">Start Sending</button>
+        <button onclick="startProcess()" id="subBtn">Start Auto Signup</button>
 
         <div id="results" style="display:none;"></div>
     </div>
 
     <script>
-        async function startSignup() {
+        async function startProcess() {
             const ref = document.getElementById('refCode').value;
-            const count = document.getElementById('count').value;
+            const total = parseInt(document.getElementById('totalCount').value);
             const btn = document.getElementById('subBtn');
             const resDiv = document.getElementById('results');
 
@@ -47,29 +44,42 @@
             }
 
             btn.disabled = true;
-            btn.innerText = "Processing...";
             resDiv.style.display = 'block';
-            resDiv.innerHTML = '<div class="log-item">Requesting server...</div>';
+            resDiv.innerHTML = '<div class="log-item">Starting process...</div>';
 
-            try {
-                let response = await fetch('/signup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ref: ref, count: parseInt(count) })
-                });
-                let data = await response.json();
+            let success = 0;
+            let failed = 0;
+
+            for(let i = 1; i <= total; i++) {
+                btn.innerText = `Processing ${i}/${total}...`;
+                try {
+                    let response = await fetch('/signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ref: ref })
+                    });
+                    let data = await response.json();
+                    
+                    if(data.success) {
+                        success++;
+                    } else {
+                        failed++;
+                    }
+                    
+                    resDiv.innerHTML += `<div class="log-item">${data.log}</div>`;
+                    resDiv.scrollTop = resDiv.scrollHeight;
+                } catch (err) {
+                    failed++;
+                    resDiv.innerHTML += `<div class="log-item" style="color:red;">❌ Request error on account ${i}</div>`;
+                }
                 
-                let html = `<div><b>Success: ${data.success_count} | Failed: ${data.failed_count}</b></div><hr>`;
-                data.logs.forEach(log => {
-                    html += `<div class="log-item">${log}</div>`;
-                });
-                resDiv.innerHTML = html;
-            } catch (err) {
-                resDiv.innerHTML = `<div style="color:red;">Error: Server timeout or failed</div>`;
+                // Thoda delay taaki server load na ho
+                await new Promise(r => setTimeout(r, 2000));
             }
 
             btn.disabled = false;
-            btn.innerText = "Start Sending";
+            btn.innerText = "Start Auto Signup";
+            resDiv.innerHTML += `<div style="margin-top:10px; color:#38bdf8; font-weight:bold;">Completed! Success: ${success}, Failed: ${failed}</div>`;
         }
     </script>
 </body>

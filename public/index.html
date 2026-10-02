@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rewardra Auto Bot</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+}
+.container {
+    max-width: 600px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+h1 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    margin-bottom: 25px;
+}
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: #aaa;
+    font-size: 13px;
+    font-weight: 600;
+}
+input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 18px;
+    transition: all 0.3s;
+}
+input:focus {
+    border-color: #00d4ff;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+button {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 20px;
+}
+button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+}
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.stat {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #00d4ff;
+}
+.stat-label {
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+}
+#log {
+    background: #000;
+    border-radius: 10px;
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.log-line { margin-bottom: 4px; }
+.log-success { color: #00ff88; }
+.log-error { color: #ff4466; }
+.log-info { color: #00d4ff; }
+.log-warn { color: #ffaa00; }
+.log-dim { color: #666; }
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+    width: 0%;
+    transition: width 0.3s;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>⚡ Rewardra Auto Bot</h1>
+    <p class="subtitle">Register + Task Complete (Offer 75926)</p>
+
+    <label>🔗 Referral Code</label>
+    <input type="text" id="refCode" placeholder="Enter referral code" value="DXWOZZLY">
+
+    <label>🔢 Kitne Accounts</label>
+    <input type="number" id="count" value="10" min="1" max="100">
+
+    <button id="startBtn" onclick="start()">🚀 Start</button>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value" id="statSuccess">0</div>
+            <div class="stat-label">SUCCESS</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="statFailed">0</div>
+            <div class="stat-label">FAILED</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">TOTAL</div>
+        </div>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progress"></div>
+    </div>
+
+    <div id="log"></div>
+</div>
+
+<script>
+let running = false;
+let success = 0, failed = 0, total = 0;
+
+function log(msg, type = 'info') {
+    const el = document.getElementById('log');
+    const line = document.createElement('div');
+    line.className = 'log-line log-' + type;
+    line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+}
+
+function updateStats() {
+    document.getElementById('statSuccess').textContent = success;
+    document.getElementById('statFailed').textContent = failed;
+    document.getElementById('statTotal').textContent = total;
+}
+
+function updateProgress(current, max) {
+    const pct = (current / max) * 100;
+    document.getElementById('progress').style.width = pct + '%';
+}
+
+async function start() {
+    if (running) return;
+
+    const refCode = document.getElementById('refCode').value.trim();
+    const count = parseInt(document.getElementById('count').value) || 10;
+
+    if (!refCode) {
+        alert('Referral code daalein!');
+        return;
+    }
+
+    running = true;
+    success = 0; failed = 0; total = 0;
+    updateStats();
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('startBtn').textContent = '⏳ Running...';
+
+    log('Starting with ref: ' + refCode, 'info');
+    log('Total accounts: ' + count, 'info');
+    log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
+
+    for (let i = 1; i <= count; i++) {
+        log(`\n[${i}/${count}] Processing...`, 'warn');
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ref_code: refCode })
+            });
+
+            const result = await response.json();
+
+            log('📧 ' + result.email, 'info');
+            log('📱 ' + result.device, 'dim');
+
+            if (result.steps) {
+                result.steps.forEach(s => log('   ' + s, 'dim'));
+            }
+
+            if (result.success) {
+                success++;
+                log('   🎉 ' + result.status, 'success');
+                log('   🌐 IP: ' + result.user_ip, 'dim');
+            } else {
+                failed++;
+                log('   ❌ ' + result.status, 'error');
+            }
+
+        } catch (err) {
+            failed++;
+            log('   ❌ Network error: ' + err.message, 'error');
+        }
+
+        total++;
+        updateStats();
+        updateProgress(i, count);
+
+        // Delay between accounts
+        if (i < count) {
+            log('   ⏱  Waiting 10s...', 'dim');
+            await new Promise(r => setTimeout(r, 10000));
+        }
+    }
+
+    log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'dim');
+    log('✅ Success: ' + success, 'success');
+    log('❌ Failed: ' + failed, 'error');
+    log('📊 Total: ' + total, 'info');
+
+    running = false;
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('startBtn').textContent = '🚀 Start';
+}
+</script>
+</body>
+</html>

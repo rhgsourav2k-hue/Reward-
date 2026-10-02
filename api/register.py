@@ -2,6 +2,7 @@
 Rewardra.xyz - Vercel Serverless Backend
 Uses user's IP via X-Forwarded-For
 """
+
 import json
 import time
 import random
@@ -24,10 +25,11 @@ PASSWORD = "7797212585@"
 TARGET_OFFER_ID = 75926
 
 TASK_BYPASS_URL = "https://narzo.fun/Adjust/?url={}&submit=SUBMIT"
-TIMEOUT = 20
+TIMEOUT = 15
+
 
 # ============================================================
-# DEVICES (Random)
+# DEVICES (Random Rotate)
 # ============================================================
 DEVICES = [
     {"model": "CPH2729", "android": "16", "chrome": "153", "build": "BP2A.250605.015", "brand": "OPPO"},
@@ -38,6 +40,8 @@ DEVICES = [
     {"model": "SM-A155F", "android": "15", "chrome": "120", "build": "UP1A.231005.007", "brand": "samsung"},
     {"model": "M2101K6P", "android": "14", "chrome": "121", "build": "UKQ1.231003.002", "brand": "Xiaomi"},
     {"model": "OnePlus 12", "android": "15", "chrome": "122", "build": "UP1A.231005.007", "brand": "OnePlus"},
+    {"model": "Redmi Note 13", "android": "14", "chrome": "121", "build": "UKQ1.231003.002", "brand": "Xiaomi"},
+    {"model": "iQOO Z9", "android": "14", "chrome": "120", "build": "UP1A.231005.007", "brand": "iQOO"},
 ]
 
 BROWSER_APPS = ["Aujbrqp/4.0", "SoulBrowser/1.0", "KiwiBrowser/1.0"]
@@ -99,7 +103,7 @@ def get_headers(referer=None, ajax=False, device=None, user_ip=None):
         "upgrade-insecure-requests": "1",
         "user-agent": random_ua(device),
         "origin": BASE_URL,
-        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-encoding": "gzip, deflate, br",
         "accept-language": "en-IN,en-US;q=0.9,en;q=0.8",
         "sec-fetch-site": "same-origin",
         "x-requested-with": random_xrw(),
@@ -120,11 +124,9 @@ def get_headers(referer=None, ajax=False, device=None, user_ip=None):
     if referer:
         headers["referer"] = referer
 
-    # 🔥 USER IP FORWARDING
     if user_ip:
         headers["X-Forwarded-For"] = user_ip
         headers["X-Real-IP"] = user_ip
-        headers["X-Originating-IP"] = user_ip
         headers["CF-Connecting-IP"] = user_ip
 
     return headers
@@ -146,7 +148,6 @@ def extract_csrf(html):
 # MAIN FLOW
 # ============================================================
 def process_account(ref_code, user_ip):
-    """Register + Login + Task Bypass for 1 account"""
     email = random_email()
     device = random_device()
 
@@ -162,9 +163,7 @@ def process_account(ref_code, user_ip):
     }
 
     try:
-        # ============================================
-        # STEP 1: REGISTER
-        # ============================================
+        # ==================== STEP 1: REGISTER ====================
         session = requests.Session()
         signup_url = f"{SIGNUP_URL}?ref={ref_code}"
 
@@ -179,7 +178,7 @@ def process_account(ref_code, user_ip):
             result["steps"].append("No CSRF token")
             return result
 
-        time.sleep(1)
+        time.sleep(0.8)
 
         data = {
             "_token": token,
@@ -203,13 +202,11 @@ def process_account(ref_code, user_ip):
             result["steps"].append(f"Register failed HTTP {r2.status_code}")
             return result
 
-        result["steps"].append("✅ Registered")
+        result["steps"].append("Registered")
 
-        time.sleep(1.5)
+        time.sleep(1)
 
-        # ============================================
-        # STEP 2: LOGIN
-        # ============================================
+        # ==================== STEP 2: LOGIN ====================
         r3 = session.get(LOGIN_URL, headers=get_headers(device=device, user_ip=user_ip), timeout=TIMEOUT)
         token = extract_csrf(r3.text)
 
@@ -217,7 +214,7 @@ def process_account(ref_code, user_ip):
             result["steps"].append("No login CSRF")
             return result
 
-        time.sleep(1)
+        time.sleep(0.8)
 
         login_data = {"_token": token, "email": email, "password": PASSWORD}
         r4 = session.post(
@@ -233,12 +230,10 @@ def process_account(ref_code, user_ip):
             result["steps"].append(f"Login failed HTTP {r4.status_code}")
             return result
 
-        result["steps"].append("✅ Logged in")
-        time.sleep(1.5)
+        result["steps"].append("Logged in")
+        time.sleep(1)
 
-        # ============================================
-        # STEP 3: CLICK OFFER
-        # ============================================
+        # ==================== STEP 3: CLICK OFFER ====================
         click_url = f"{BASE_URL}/user/offers/{TARGET_OFFER_ID}/click"
         r5 = session.get(
             click_url,
@@ -252,11 +247,10 @@ def process_account(ref_code, user_ip):
             return result
 
         current_url = r5.headers.get("Location", "")
-        result["steps"].append(f"✅ Redirect 1")
+        result["steps"].append("Redirect 1")
 
-        # Follow chain
         final_url = current_url
-        for hop in range(6):
+        for hop in range(5):
             try:
                 r6 = requests.get(
                     current_url,
@@ -274,11 +268,11 @@ def process_account(ref_code, user_ip):
 
                 if r6.status_code in [301, 302, 303, 307, 308]:
                     current_url = r6.headers.get("Location", "")
-                    result["steps"].append(f"✅ Redirect {hop+2}")
+                    result["steps"].append(f"Redirect {hop+2}")
                     final_url = current_url
 
                     if "adjust.com" in current_url:
-                        result["steps"].append("🎯 Adjust link found")
+                        result["steps"].append("Adjust link found")
                         break
                 else:
                     break
@@ -287,9 +281,7 @@ def process_account(ref_code, user_ip):
 
         result["adjust_url"] = final_url
 
-        # ============================================
-        # STEP 4: TASK BYPASS
-        # ============================================
+        # ==================== STEP 4: TASK BYPASS ====================
         if "adjust.com" in final_url:
             encoded = quote(final_url, safe="")
             bypass_url = TASK_BYPASS_URL.format(encoded)
@@ -308,10 +300,10 @@ def process_account(ref_code, user_ip):
 
             if r7.status_code == 200:
                 result["success"] = True
-                result["status"] = "SENT ✓"
-                result["steps"].append("✅ Task bypass SENT")
+                result["status"] = "SENT"
+                result["steps"].append("Task bypass SENT")
             else:
-                result["steps"].append(f"Task bypass HTTP {r7.status_code}")
+                result["steps"].append(f"Bypass HTTP {r7.status_code}")
                 result["status"] = f"HTTP {r7.status_code}"
         else:
             result["status"] = "NO_ADJUST"
@@ -326,48 +318,43 @@ def process_account(ref_code, user_ip):
 # VERCEL HANDLER
 # ============================================================
 class handler(BaseHTTPRequestHandler):
-    def _set_cors(self):
+    def _send_json(self, code, data):
+        self.send_response(code)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self._set_cors()
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
+
+    def do_GET(self):
+        self._send_json(200, {"status": "ok", "message": "Rewardra API running"})
 
     def do_POST(self):
         try:
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
-            data = json.loads(body) if body else {}
+            data = json.loads(body.decode()) if body else {}
 
             ref_code = data.get("ref_code", "").strip()
 
             if not ref_code:
-                self.send_response(400)
-                self._set_cors()
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "ref_code required"}).encode())
+                self._send_json(400, {"error": "ref_code required"})
                 return
 
-            # 🔥 USER IP FROM VERCEL
             xff = self.headers.get("x-forwarded-for", "")
             user_ip = xff.split(",")[0].strip() if xff else "unknown"
 
-            # Process 1 account
             result = process_account(ref_code, user_ip)
 
-            self.send_response(200)
-            self._set_cors()
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(result).encode())
+            self._send_json(200, result)
 
         except Exception as e:
-            self.send_response(500)
-            self._set_cors()
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": str(e)[:100]}).encode())
+            self._send_json(500, {"error": str(e)[:150]})
